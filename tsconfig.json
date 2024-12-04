@@ -1,16 +1,15 @@
 {
   "compilerOptions": {
     "module": "esnext",
-    "moduleResolution": "node16",
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "target": "esnext",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "strict": true
-
+    "strict": true,
+    "noEmit": true
   },
-  "include": [
-    "src" 
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }
