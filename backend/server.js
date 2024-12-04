@@ -1,56 +1,64 @@
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 const fs = require("fs");
 const { exec } = require("child_process");
 
 const app = express();
-app.use(cors({ origin: "https://pruebaconvertidor.netlify.app" })); // Cambia por tu URL de Netlify
+const PORT = process.env.PORT || 3000;
+
+// Ruta temporal para guardar las cookies
+const cookiesPath = "/tmp/yt-cookies.txt";
+
+// Escribe las cookies desde las variables de entorno
+if (!process.env.YOUTUBE_COOKIES) {
+  console.error("Error: La variable de entorno YOUTUBE_COOKIES no está configurada.");
+  process.exit(1);
+}
+fs.writeFileSync(cookiesPath, process.env.YOUTUBE_COOKIES, "utf8");
+console.log("Archivo de cookies escrito correctamente.");
+
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-const outputDir = path.resolve(__dirname, "output");
-if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir, { recursive: true });
-}
-
-app.post("/download", async (req, res) => {
+// Rutas
+app.post("/download", (req, res) => {
   const videoUrl = req.body.url;
-  if (!videoUrl || !videoUrl.startsWith("https://www.youtube.com")) {
-    return res.status(400).json({ error: "URL no válida o no soportada." });
+
+  if (!videoUrl) {
+    return res.status(400).json({ error: "Por favor, proporcione una URL válida." });
   }
 
-  const cookiesPath = path.resolve(__dirname, "cookies.txt");
-  const outputFilePath = path.join(outputDir, `${Date.now()}.mp3`);
+  // Comando para descargar el video
+  const command = `yt-dlp --cookies ${cookiesPath} -x --audio-format mp3 -o "/tmp/%(title)s.%(ext)s" ${videoUrl}`;
 
-  const command = `yt-dlp --cookies "${cookiesPath}" -x --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`;
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error al ejecutar yt-dlp: ${stderr}`);
+      return res.status(500).json({ error: `Error al convertir el video: ${stderr}` });
+    }
 
-  try {
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error("Error al ejecutar yt-dlp:", stderr || error.message);
-        return res.status(500).json({ error: "Error al procesar el video." });
-      }
+    console.log(`Comando ejecutado con éxito: ${stdout}`);
 
-      res.download(outputFilePath, path.basename(outputFilePath), async (err) => {
+    // Busca el archivo generado
+    const fileNameMatch = stdout.match(/Destination: (.+\.mp3)/);
+    const filePath = fileNameMatch ? fileNameMatch[1] : null;
+
+    if (filePath && fs.existsSync(filePath)) {
+      res.download(filePath, (err) => {
         if (err) {
           console.error("Error al enviar el archivo:", err);
-          res.status(500).json({ error: "Error al enviar el archivo." });
-        } else {
-          try {
-            await fs.promises.unlink(outputFilePath);
-          } catch (unlinkErr) {
-            console.error("Error al eliminar el archivo:", unlinkErr);
-          }
         }
+        // Limpia el archivo después de enviarlo
+        fs.unlinkSync(filePath);
       });
-    });
-  } catch (err) {
-    console.error("Error inesperado en el servidor:", err.message);
-    res.status(500).json({ error: "Error inesperado en el servidor." });
-  }
+    } else {
+      res.status(500).json({ error: "Error al encontrar el archivo generado." });
+    }
+  });
 });
 
-// Iniciar servidor
-app.listen(3000, () => {
-  console.log("Servidor ejecutándose en http://localhost:3000/");
+// Servidor en escucha
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
