@@ -34,13 +34,17 @@ app.post("/download", async (req, res) => {
     });
 
     // Establecer encabezados para forzar la descarga
-    res.download(outputFilePath, path.basename(outputFilePath), (err) => {
+    res.download(outputFilePath, path.basename(outputFilePath), async (err) => {
       if (err) {
         console.error("Error al enviar el archivo:", err);
         res.status(500).json({ error: "Error al procesar el archivo." });
       } else {
-        // Eliminar el archivo una vez enviado
-        fs.unlinkSync(outputFilePath);
+        try {
+          // Eliminar el archivo después de enviarlo
+          await fs.promises.unlink(outputFilePath);
+        } catch (unlinkErr) {
+          console.error("Error al eliminar el archivo:", unlinkErr);
+        }
       }
     });
   } catch (err) {
@@ -50,20 +54,24 @@ app.post("/download", async (req, res) => {
 });
 
 // Limpiar archivos antiguos (opcional)
-const clearOldFiles = () => {
-  const files = fs.readdirSync(outputDir);
-  files.forEach((file) => {
-    const filePath = path.join(outputDir, file);
-    const stats = fs.statSync(filePath);
-    const now = Date.now();
-    const ageInHours = (now - stats.mtimeMs) / (1000 * 60 * 60);
+const clearOldFiles = async () => {
+  try {
+    const files = await fs.promises.readdir(outputDir);
+    for (const file of files) {
+      const filePath = path.join(outputDir, file);
+      const stats = await fs.promises.stat(filePath);
+      const now = Date.now();
+      const ageInHours = (now - stats.mtimeMs) / (1000 * 60 * 60);
 
-    if (ageInHours > 24) {
-      fs.unlinkSync(filePath);
+      if (ageInHours > 24) {
+        await fs.promises.unlink(filePath); // Eliminar archivo si es mayor a 24 horas
+      }
     }
-  });
+  } catch (err) {
+    console.error("Error al limpiar archivos antiguos:", err);
+  }
 };
-setInterval(clearOldFiles, 1000 * 60 * 60);
+setInterval(clearOldFiles, 1000 * 60 * 60); // Ejecutar cada hora
 
 // Iniciar el servidor
 app.listen(3000, () => {

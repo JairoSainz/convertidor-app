@@ -30,13 +30,14 @@ function Contenido() {
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = downloadUrl;
-        link.download = `${Date.now()}.mp3`;
+        link.download = `${Date.now()}.mp3`; // Puedes modificar este nombre dinámicamente
         document.body.appendChild(link);
         link.click();
         link.remove();
+        window.URL.revokeObjectURL(downloadUrl); // Liberar la URL creada
       } else {
         const data = await response.json();
-        setError(data.error || "Error al convertir el video.");
+        setError(data?.error || "Error al convertir el video.");
       }
     } catch (error) {
       console.error("Error de conexión:", error); // Para depurar
