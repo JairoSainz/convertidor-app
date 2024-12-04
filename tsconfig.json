@@ -1,12 +1,17 @@
 {
   "compilerOptions": {
-    "module": "Node16",
-    "moduleResolution": "node16",
-    "target": "esnext",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "jsx": "react-jsx"
+    "target": "esnext", 
+    "module": "Node16",  
+    "moduleResolution": "node", 
+    "strict": true, 
+    "esModuleInterop": true, 
+    "skipLibCheck": true, 
+    "jsx": "react-jsx", 
+    "resolveJsonModule": true, 
+    "isolatedModules": true, 
+    "lib": ["dom", "esnext"] 
   },
-  "include": ["src"]
+  "include": [
+    "src" 
+  ]
 }
