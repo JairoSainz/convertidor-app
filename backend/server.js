@@ -6,14 +6,20 @@ const { exec } = require("child_process");
 
 const app = express();
 
-// Configurar CORS para permitir solicitudes desde tu frontend en Netlify
-const allowedOrigins = ["https://your-netlify-domain.netlify.app", "https://convertidor-app.onrender.com"];
+// Permitir solicitudes desde Netlify y Render
+const allowedOrigins = [
+  "https://your-netlify-domain.netlify.app",  // URL de tu frontend en Netlify
+  "https://convertidor-app.onrender.com"     // URL de tu backend en Render
+];
+
 app.use(cors({
   origin: (origin, callback) => {
     if (allowedOrigins.includes(origin) || !origin) {
-      callback(null, true); // Permitir la solicitud si proviene de los orígenes permitidos
+      // Permitir solicitudes sin origen (para pruebas locales)
+      callback(null, true);
     } else {
-      callback(new Error("No permitido por CORS"), false); // Si no, rechazarla
+      // Responder con error si el origen no está permitido
+      callback(new Error("No permitido por CORS"), false);
     }
   }
 }));
@@ -88,7 +94,6 @@ const clearOldFiles = async () => {
 setInterval(clearOldFiles, 1000 * 60 * 60); // Ejecutar cada hora
 
 // Iniciar el servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${PORT}/`);
+app.listen(3000, () => {
+  console.log("Servidor ejecutándose en http://localhost:3000/");
 });
