@@ -1,5 +1,5 @@
 const express = require("express");
-const ytDlp = require("yt-dlp");
+const { exec } = require("child_process");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
@@ -21,34 +21,36 @@ app.post("/download", async (req, res) => {
   }
 
   try {
-    // Definir las opciones de yt-dlp
-    const options = {
-      url: url,
-      cookies: cookies, // Pasar las cookies desde la variable de entorno
-      extractAudio: true,
-      audioQuality: 0,
-      audioFormat: "mp3",
-      output: path.join(__dirname, "downloads", "%(title)s.%(ext)s"), // Ajusta la ruta de salida
-    };
+    // Definir la ruta de salida y las opciones de yt-dlp
+    const outputPath = path.join(__dirname, "downloads", "%(title)s.%(ext)s");
 
-    // Ejecutar yt-dlp para descargar el audio
-    ytDlp(options, function (err, output) {
-      if (err) {
-        console.error("Error al ejecutar yt-dlp:", err);
+    // Comando para ejecutar yt-dlp en el backend con las cookies
+    const command = `yt-dlp --cookies "${cookies}" --output "${outputPath}" "${url}"`;
+
+    // Ejecutar el comando en un proceso hijo
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error al ejecutar yt-dlp: ${error.message}`);
         return res.status(500).json({ error: "Error al ejecutar yt-dlp" });
       }
+      if (stderr) {
+        console.error(`Error en stderr: ${stderr}`);
+        return res.status(500).json({ error: "Error en yt-dlp" });
+      }
 
-      const outputPath = path.join(__dirname, "downloads", `${output.title}.mp3`);
+      console.log(`stdout: ${stdout}`);
 
-      // Verificar si el archivo se descargó
-      if (fs.existsSync(outputPath)) {
-        res.download(outputPath, (err) => {
+      // Verificar si el archivo descargado existe
+      const downloadedFilePath = path.join(__dirname, "downloads", `${stdout.trim()}.mp3`);
+
+      if (fs.existsSync(downloadedFilePath)) {
+        res.download(downloadedFilePath, (err) => {
           if (err) {
             console.error("Error al enviar archivo:", err);
             res.status(500).json({ error: "Error al enviar archivo" });
           } else {
-            // Borrar el archivo después de enviarlo para liberar espacio
-            fs.unlinkSync(outputPath);
+            // Borrar el archivo después de enviarlo
+            fs.unlinkSync(downloadedFilePath);
           }
         });
       } else {
