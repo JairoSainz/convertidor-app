@@ -6,20 +6,20 @@ const { exec } = require("child_process");
 
 const app = express();
 
-// Permitir solicitudes desde Netlify y Render
+// Permitir solicitudes desde Netlify y desde cualquier origen en desarrollo
 const allowedOrigins = [
-  "https://your-netlify-domain.netlify.app",  // URL de tu frontend en Netlify
-  "https://convertidor-app.onrender.com"     // URL de tu backend en Render
+  "https://pruebaconvertidor.netlify.app",  // URL de tu frontend en Netlify
+  "http://localhost:5173",                   // URL de tu frontend en desarrollo (puedes ajustar el puerto si es diferente)
+  "https://convertidor-app.onrender.com"     // URL de tu backend en Render (si es necesario)
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (allowedOrigins.includes(origin) || !origin) {
-      // Permitir solicitudes sin origen (para pruebas locales)
-      callback(null, true);
+    // Si no hay origen (solicitud sin origen como ocurre en algunas solicitudes internas) se permite
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);  // Permitir el acceso
     } else {
-      // Responder con error si el origen no está permitido
-      callback(new Error("No permitido por CORS"), false);
+      callback(new Error("No permitido por CORS"), false);  // Bloquear el acceso
     }
   }
 }));
