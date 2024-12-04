@@ -5,7 +5,7 @@ const fs = require("fs");
 const { exec } = require("child_process");
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: "*" }));  // Esto permite solicitudes desde cualquier origen, incluyendo Netlify
 app.use(express.json());
 
 // Crear carpeta 'output' si no existe
