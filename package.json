@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "pip install yt-dlp",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

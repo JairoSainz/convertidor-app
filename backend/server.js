@@ -1,17 +1,17 @@
 const express = require("express");
-const { exec } = require("child_process");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const { exec } = require("child_process");
 
 const app = express();
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
 
 // Crear carpeta 'output' si no existe
-const outputDir = path.join(__dirname, "output");
+const outputDir = path.resolve(__dirname, "output");
 if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir);
+  fs.mkdirSync(outputDir, { recursive: true });
 }
 
 // Endpoint para descargar y convertir a MP3
@@ -25,27 +25,16 @@ app.post("/download", async (req, res) => {
   const outputFilePath = path.join(outputDir, `${Date.now()}.mp3`);
 
   try {
-    // Usar la URL directamente sin codificarla
-    exec(`yt-dlp -x --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`, (error, stdout, stderr) => {
+    // Ejecutar yt-dlp con argumentos
+    const command = `yt-dlp -x --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`;
+
+    exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.error(`Error al ejecutar yt-dlp: ${error.message}`);
-        return res.status(500).json({
-          error: "Error al procesar el video.",
-          details: error.message,
-        });
+        console.error("Error al ejecutar yt-dlp:", stderr || error.message);
+        return res.status(500).json({ error: "Error al procesar el video." });
       }
 
-      if (stderr) {
-        console.error(`stderr: ${stderr}`);
-        return res.status(500).json({
-          error: "Error en la conversión.",
-          details: stderr,
-        });
-      }
-
-      console.log(`stdout: ${stdout}`);
-
-      // Establecer encabezados para forzar la descarga
+      // Enviar el archivo como respuesta para descarga
       res.download(outputFilePath, path.basename(outputFilePath), async (err) => {
         if (err) {
           console.error("Error al enviar el archivo:", err);
@@ -61,8 +50,8 @@ app.post("/download", async (req, res) => {
       });
     });
   } catch (err) {
-    console.error("Error en yt-dlp:", err.stderr || err.message);
-    res.status(500).json({ error: "Error al procesar el video.", details: err.message });
+    console.error("Error al procesar el video:", err.message);
+    res.status(500).json({ error: "Error inesperado en el servidor." });
   }
 });
 
