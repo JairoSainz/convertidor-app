@@ -16,7 +16,7 @@ function Contenido() {
     }
 
     try {
-      const response = await fetch("https://convertidor-app.onrender.com/download", {  // Cambié localhost a la URL pública de tu servidor en Render
+      const response = await fetch("https://convertidor-app.onrender.com/download", { // Cambia a tu URL de Render
         method: "POST",
         headers: {
           "Content-Type": "application/json",

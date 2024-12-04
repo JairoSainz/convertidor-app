@@ -5,7 +5,19 @@ const fs = require("fs");
 const { exec } = require("child_process");
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173" }));  // Ajusta la URL de tu frontend en producción
+
+// Configurar CORS para permitir solicitudes desde tu frontend en Netlify
+const allowedOrigins = ["https://your-netlify-domain.netlify.app", "https://convertidor-app.onrender.com"];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true); // Permitir la solicitud si proviene de los orígenes permitidos
+    } else {
+      callback(new Error("No permitido por CORS"), false); // Si no, rechazarla
+    }
+  }
+}));
+
 app.use(express.json());
 
 // Crear carpeta 'output' si no existe
@@ -13,9 +25,6 @@ const outputDir = path.resolve(__dirname, "output");
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
-
-// Ruta al archivo de cookies (asegúrate de subirlo a tu servidor)
-const cookiesFilePath = path.resolve(__dirname, "cookies.txt"); // Ruta al archivo de cookies.txt
 
 // Endpoint para descargar y convertir a MP3
 app.post("/download", async (req, res) => {
@@ -28,8 +37,8 @@ app.post("/download", async (req, res) => {
   const outputFilePath = path.join(outputDir, `${Date.now()}.mp3`);
 
   try {
-    // Comando para ejecutar yt-dlp con cookies
-    const command = `yt-dlp --cookies "${cookiesFilePath}" -x --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`;
+    // Ejecutar yt-dlp con argumentos
+    const command = `yt-dlp -x --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
@@ -79,6 +88,7 @@ const clearOldFiles = async () => {
 setInterval(clearOldFiles, 1000 * 60 * 60); // Ejecutar cada hora
 
 // Iniciar el servidor
-app.listen(3000, () => {
-  console.log("Servidor ejecutándose en http://localhost:3000/");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor ejecutándose en http://localhost:${PORT}/`);
 });
