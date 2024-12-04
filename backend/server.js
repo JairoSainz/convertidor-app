@@ -1,5 +1,5 @@
 const express = require("express");
-const youtubedl = require("youtube-dl-exec");
+const { exec } = require("child_process");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
@@ -25,31 +25,44 @@ app.post("/download", async (req, res) => {
   const outputFilePath = path.join(outputDir, `${Date.now()}.mp3`);
 
   try {
-    // Ejecutar descarga y conversión
-    await youtubedl(videoUrl, {
-      extractAudio: true,
-      audioFormat: "mp3",
-      output: outputFilePath,
-      noPlaylist: true,
-    });
-
-    // Establecer encabezados para forzar la descarga
-    res.download(outputFilePath, path.basename(outputFilePath), async (err) => {
-      if (err) {
-        console.error("Error al enviar el archivo:", err);
-        res.status(500).json({ error: "Error al procesar el archivo." });
-      } else {
-        try {
-          // Eliminar el archivo después de enviarlo
-          await fs.promises.unlink(outputFilePath);
-        } catch (unlinkErr) {
-          console.error("Error al eliminar el archivo:", unlinkErr);
-        }
+    // Usar la URL directamente sin codificarla
+    exec(`yt-dlp -x --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error al ejecutar yt-dlp: ${error.message}`);
+        return res.status(500).json({
+          error: "Error al procesar el video.",
+          details: error.message,
+        });
       }
+
+      if (stderr) {
+        console.error(`stderr: ${stderr}`);
+        return res.status(500).json({
+          error: "Error en la conversión.",
+          details: stderr,
+        });
+      }
+
+      console.log(`stdout: ${stdout}`);
+
+      // Establecer encabezados para forzar la descarga
+      res.download(outputFilePath, path.basename(outputFilePath), async (err) => {
+        if (err) {
+          console.error("Error al enviar el archivo:", err);
+          res.status(500).json({ error: "Error al procesar el archivo." });
+        } else {
+          try {
+            // Eliminar el archivo después de enviarlo
+            await fs.promises.unlink(outputFilePath);
+          } catch (unlinkErr) {
+            console.error("Error al eliminar el archivo:", unlinkErr);
+          }
+        }
+      });
     });
   } catch (err) {
     console.error("Error en yt-dlp:", err.stderr || err.message);
-    res.status(500).json({ error: "Error al procesar el video." });
+    res.status(500).json({ error: "Error al procesar el video.", details: err.message });
   }
 });
 
