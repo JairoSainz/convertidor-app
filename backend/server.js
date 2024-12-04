@@ -5,7 +5,7 @@ const fs = require("fs");
 const { exec } = require("child_process");
 
 const app = express();
-app.use(cors({ origin: "*" }));  // Esto permite solicitudes desde cualquier origen, incluyendo Netlify
+app.use(cors({ origin: "http://localhost:5173" }));  // Ajusta la URL de tu frontend en producción
 app.use(express.json());
 
 // Crear carpeta 'output' si no existe
@@ -13,6 +13,9 @@ const outputDir = path.resolve(__dirname, "output");
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
+
+// Ruta al archivo de cookies (asegúrate de subirlo a tu servidor)
+const cookiesFilePath = path.resolve(__dirname, "cookies.txt"); // Ruta al archivo de cookies.txt
 
 // Endpoint para descargar y convertir a MP3
 app.post("/download", async (req, res) => {
@@ -25,8 +28,8 @@ app.post("/download", async (req, res) => {
   const outputFilePath = path.join(outputDir, `${Date.now()}.mp3`);
 
   try {
-    // Ejecutar yt-dlp con argumentos
-    const command = `yt-dlp -x --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`;
+    // Comando para ejecutar yt-dlp con cookies
+    const command = `yt-dlp --cookies "${cookiesFilePath}" -x --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
