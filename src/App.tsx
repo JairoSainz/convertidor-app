@@ -1,8 +1,9 @@
-import Encabezado from "./Encabezado";
-import Contenido from "./Contenido";
-import Usos from "./Usos";
-import Nosotros from "./Nosotros";
-import Footer from "./Footer";
+import Encabezado from "./Encabezado.js";
+import Contenido from "./Contenido.js";
+import Usos from "./Usos.js";
+import Nosotros from "./Nosotros.js";
+import Footer from "./Footer.js";
+
 
 function App() {
   return (
