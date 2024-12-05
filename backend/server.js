@@ -11,11 +11,11 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Obtener las cookies de la variable de entorno
-const cookies = process.env.YOUTUBE_COOKIES;
+// Ruta del archivo de cookies
+const cookiesFilePath = path.join(__dirname, "cookies.txt");
 
-if (!cookies) {
-  console.error("Error: No se ha configurado la variable de entorno YOUTUBE_COOKIES.");
+if (!fs.existsSync(cookiesFilePath)) {
+  console.error("Error: El archivo de cookies no existe. Exporta cookies desde el navegador.");
   process.exit(1);
 }
 
@@ -33,20 +33,20 @@ app.post("/download", async (req, res) => {
   }
 
   try {
-    // Archivo temporal para guardar las cookies
-    const cookiesFilePath = path.join(__dirname, "cookies.txt");
-    fs.writeFileSync(cookiesFilePath, cookies);
-
-    // Definir la ruta de salida
+    // Ruta de salida
     const outputTemplate = path.join(downloadsDir, "%(title)s.%(ext)s");
 
-    // Comando para ejecutar yt-dlp
+    // Comando yt-dlp
     const command = `yt-dlp --cookies "${cookiesFilePath}" --output "${outputTemplate}" "${url}"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error al ejecutar yt-dlp: ${error.message}`);
-        return res.status(500).json({ error: "Error al ejecutar yt-dlp" });
+        console.error(`stderr: ${stderr}`);
+        return res.status(500).json({
+          error: "Error al ejecutar yt-dlp",
+          details: stderr.trim(),
+        });
       }
 
       console.log(`stdout: ${stdout}`);
