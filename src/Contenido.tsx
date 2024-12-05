@@ -15,8 +15,16 @@ function Contenido() {
       return;
     }
 
+    // Validar que la URL es de YouTube
+    const isValidYouTubeUrl = /^(https?:\/\/)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)\/(watch\?v=|v\/|e\/|watch\?v%3D|embed\/)([a-zA-Z0-9_-]{11})/.test(videoUrl);
+    if (!isValidYouTubeUrl) {
+      setError("Por favor, ingresa una URL válida de YouTube.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch("https://convertidor-app.onrender.com/download", { // Cambia a tu URL de Render
+      const response = await fetch("https://convertidor-app.onrender.com/download", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -25,12 +33,11 @@ function Contenido() {
       });
 
       if (response.ok) {
-        // Descarga automática del archivo
         const blob = await response.blob();
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = downloadUrl;
-        link.download = `${Date.now()}.mp3`; // Puedes modificar este nombre dinámicamente
+        link.download = `${Date.now()}.mp3`; // Modifica dinámicamente el nombre si es necesario
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -43,7 +50,7 @@ function Contenido() {
       console.error("Error de conexión:", error); // Para depurar
       setError("Hubo un error al comunicarse con el servidor.");
     } finally {
-      setIsLoading(false); // Asegurarse de que el loading se detenga
+      setIsLoading(false);
     }
   };
 
