@@ -7,11 +7,23 @@ const fs = require("fs");
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors()); // Habilitar CORS
-app.use(express.json()); // Para procesar JSON
+// Middleware
+app.use(cors());
+app.use(express.json());
 
 // Obtener las cookies de la variable de entorno
 const cookies = process.env.YOUTUBE_COOKIES;
+
+if (!cookies) {
+  console.error("Error: No se ha configurado la variable de entorno YOUTUBE_COOKIES.");
+  process.exit(1);
+}
+
+// Asegurar que el directorio "downloads" exista
+const downloadsDir = path.join(__dirname, "downloads");
+if (!fs.existsSync(downloadsDir)) {
+  fs.mkdirSync(downloadsDir);
+}
 
 app.post("/download", async (req, res) => {
   const { url } = req.body;
@@ -21,29 +33,32 @@ app.post("/download", async (req, res) => {
   }
 
   try {
-    // Definir la ruta de salida y las opciones de yt-dlp
-    const outputPath = path.join(__dirname, "downloads", "%(title)s.%(ext)s");
+    // Archivo temporal para guardar las cookies
+    const cookiesFilePath = path.join(__dirname, "cookies.txt");
+    fs.writeFileSync(cookiesFilePath, cookies);
 
-    // Comando para ejecutar yt-dlp en el backend con las cookies
-    const command = `yt-dlp --cookies "${cookies}" --output "${outputPath}" "${url}"`;
+    // Definir la ruta de salida
+    const outputTemplate = path.join(downloadsDir, "%(title)s.%(ext)s");
 
-    // Ejecutar el comando en un proceso hijo
+    // Comando para ejecutar yt-dlp
+    const command = `yt-dlp --cookies "${cookiesFilePath}" --output "${outputTemplate}" "${url}"`;
+
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error al ejecutar yt-dlp: ${error.message}`);
         return res.status(500).json({ error: "Error al ejecutar yt-dlp" });
       }
-      if (stderr) {
-        console.error(`Error en stderr: ${stderr}`);
-        return res.status(500).json({ error: "Error en yt-dlp" });
-      }
 
       console.log(`stdout: ${stdout}`);
+      console.error(`stderr: ${stderr}`);
 
-      // Verificar si el archivo descargado existe
-      const downloadedFilePath = path.join(__dirname, "downloads", `${stdout.trim()}.mp3`);
+      // Buscar el archivo generado
+      const regex = /(?<=\[download\] Destination: ).+/;
+      const match = stdout.match(regex);
 
-      if (fs.existsSync(downloadedFilePath)) {
+      if (match && match[0]) {
+        const downloadedFilePath = match[0];
+
         res.download(downloadedFilePath, (err) => {
           if (err) {
             console.error("Error al enviar archivo:", err);
@@ -54,11 +69,11 @@ app.post("/download", async (req, res) => {
           }
         });
       } else {
-        res.status(404).json({ error: "Archivo no encontrado" });
+        res.status(404).json({ error: "Archivo no encontrado o descarga fallida." });
       }
     });
   } catch (error) {
-    console.error("Error de servidor:", error);
+    console.error("Error del servidor:", error);
     res.status(500).json({ error: "Error al procesar la solicitud" });
   }
 });
