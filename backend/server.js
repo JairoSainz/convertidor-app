@@ -7,22 +7,24 @@ const fs = require("fs");
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
+// Habilitar CORS
 app.use(cors());
+
+// Procesar JSON
 app.use(express.json());
 
-// Ruta del archivo de cookies
-const cookiesFilePath = path.join(__dirname, "cookies.txt");
+// Obtener las cookies de la variable de entorno
+const cookies = process.env.YOUTUBE_COOKIES;
+const cookiesPath = path.join(__dirname, "cookies.txt");
 
-if (!fs.existsSync(cookiesFilePath)) {
-  console.error("Error: El archivo de cookies no existe. Exporta cookies desde el navegador.");
-  process.exit(1);
-}
+// Escribir las cookies en un archivo temporal
+fs.writeFileSync(cookiesPath, cookies, "utf8");
 
-// Asegurar que el directorio "downloads" exista
+// Directorio para descargas
 const downloadsDir = path.join(__dirname, "downloads");
 if (!fs.existsSync(downloadsDir)) {
-  fs.mkdirSync(downloadsDir);
+  fs.mkdirSync(downloadsDir, { recursive: true });
+  console.log(`Directorio creado: ${downloadsDir}`);
 }
 
 app.post("/download", async (req, res) => {
@@ -33,47 +35,44 @@ app.post("/download", async (req, res) => {
   }
 
   try {
-    // Ruta de salida
-    const outputTemplate = path.join(downloadsDir, "%(title)s.%(ext)s");
+    // Ruta de salida de descarga
+    const outputPath = path.join(downloadsDir, "%(title)s.%(ext)s");
 
     // Comando yt-dlp
-    const command = `yt-dlp --cookies "${cookiesFilePath}" --output "${outputTemplate}" "${url}"`;
+    const command = `yt-dlp --cookies "${cookiesPath}" --output "${outputPath}" "${url}"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error al ejecutar yt-dlp: ${error.message}`);
+        return res.status(500).json({ error: "Error al ejecutar yt-dlp" });
+      }
+      if (stderr) {
         console.error(`stderr: ${stderr}`);
-        return res.status(500).json({
-          error: "Error al ejecutar yt-dlp",
-          details: stderr.trim(),
-        });
       }
 
       console.log(`stdout: ${stdout}`);
-      console.error(`stderr: ${stderr}`);
 
-      // Buscar el archivo generado
-      const regex = /(?<=\[download\] Destination: ).+/;
-      const match = stdout.match(regex);
+      // Buscar el archivo descargado en el stdout
+      const downloadedFileMatch = stdout.match(/Destination: (.+)/);
+      if (downloadedFileMatch) {
+        const filePath = downloadedFileMatch[1].trim();
 
-      if (match && match[0]) {
-        const downloadedFilePath = match[0];
-
-        res.download(downloadedFilePath, (err) => {
+        // Enviar el archivo como respuesta
+        res.download(filePath, (err) => {
           if (err) {
             console.error("Error al enviar archivo:", err);
             res.status(500).json({ error: "Error al enviar archivo" });
           } else {
-            // Borrar el archivo después de enviarlo
-            fs.unlinkSync(downloadedFilePath);
+            // Eliminar el archivo después de enviarlo
+            fs.unlinkSync(filePath);
           }
         });
       } else {
-        res.status(404).json({ error: "Archivo no encontrado o descarga fallida." });
+        res.status(404).json({ error: "Archivo no encontrado" });
       }
     });
-  } catch (error) {
-    console.error("Error del servidor:", error);
+  } catch (err) {
+    console.error("Error del servidor:", err);
     res.status(500).json({ error: "Error al procesar la solicitud" });
   }
 });
