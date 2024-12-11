@@ -13,6 +13,7 @@ app.use(express.json()); // Para procesar JSON
 // Obtener las cookies de la variable de entorno y el User-Agent
 const cookies = process.env.YOUTUBE_COOKIES;
 const userAgent = process.env.USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'; // Cambia esto si necesitas un User-Agent específico
+const visitorData = process.env.YT_VISITOR_DATA; // La variable de entorno para visitor_data
 
 app.post("/download", async (req, res) => {
   const { url } = req.body;
@@ -31,8 +32,8 @@ app.post("/download", async (req, res) => {
     // Definir la ruta de salida y las opciones de yt-dlp
     const outputPath = path.join(downloadDir, "%(title)s.%(ext)s");
 
-    // Comando para obtener el nombre del archivo descargado
-    const command = `yt-dlp --cookies "${cookies}" --output "${outputPath}" --user-agent "${userAgent}" --get-filename "${url}"`;
+    // Comando para obtener el nombre del archivo descargado con extractor-args y visitor_data
+    const command = `yt-dlp --extractor-args "youtube:visitor_data=${visitorData}" --cookies "${cookies}" --output "${outputPath}" --user-agent "${userAgent}" --get-filename "${url}"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
