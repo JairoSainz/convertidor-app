@@ -38,16 +38,16 @@ app.post("/download", async (req, res) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error al ejecutar yt-dlp: ${error.message}`);
-        return res.status(500).json({ error: "Error al ejecutar yt-dlp" });
+        return res.status(500).json({ error: `Error al ejecutar yt-dlp: ${error.message}` });
       }
       if (stderr) {
         console.error(`stderr: ${stderr}`);
-        return res.status(500).json({ error: "Error en yt-dlp" });
+        return res.status(500).json({ error: `stderr: ${stderr}` });
       }
-
+    
       const filename = stdout.trim();
       const downloadedFilePath = path.join(downloadDir, filename);
-
+    
       // Verificar si el archivo descargado existe
       if (fs.existsSync(downloadedFilePath)) {
         res.download(downloadedFilePath, (err) => {
@@ -63,6 +63,7 @@ app.post("/download", async (req, res) => {
         res.status(404).json({ error: "Archivo no encontrado" });
       }
     });
+    
   } catch (error) {
     console.error("Error de servidor:", error);
     res.status(500).json({ error: "Error al procesar la solicitud" });
