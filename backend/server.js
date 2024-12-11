@@ -41,10 +41,9 @@ app.post("/download", async (req, res) => {
 
       console.log(`stdout: ${stdout}`);
 
-      // Generar el nombre de archivo a partir de la salida de yt-dlp
+      // Verificar si el archivo descargado existe
       const downloadedFilePath = path.join(__dirname, "downloads", `${stdout.trim()}.mp3`);
 
-      // Verificar si el archivo descargado existe
       if (fs.existsSync(downloadedFilePath)) {
         res.download(downloadedFilePath, (err) => {
           if (err) {
@@ -52,11 +51,7 @@ app.post("/download", async (req, res) => {
             res.status(500).json({ error: "Error al enviar archivo" });
           } else {
             // Borrar el archivo después de enviarlo
-            fs.unlink(downloadedFilePath, (unlinkErr) => {
-              if (unlinkErr) {
-                console.error("Error al eliminar el archivo:", unlinkErr);
-              }
-            });
+            fs.unlinkSync(downloadedFilePath);
           }
         });
       } else {
