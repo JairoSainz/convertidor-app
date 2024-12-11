@@ -4,6 +4,18 @@ function Contenido() {
   const [videoUrl, setVideoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isValidUrl, setIsValidUrl] = useState(true);
+
+  // Función para validar la URL mientras el usuario escribe
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setVideoUrl(url);
+
+    // Validar que la URL es de YouTube
+    const isValidYouTubeUrl =
+      /^(https?:\/\/)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)\/(watch\?v=|v\/|e\/|watch\?v%3D|embed\/)([a-zA-Z0-9_-]{11})/.test(url);
+    setIsValidUrl(isValidYouTubeUrl);
+  };
 
   const handleSearch = async () => {
     setIsLoading(true);
@@ -16,8 +28,7 @@ function Contenido() {
     }
 
     // Validar que la URL es de YouTube
-    const isValidYouTubeUrl = /^(https?:\/\/)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)\/(watch\?v=|v\/|e\/|watch\?v%3D|embed\/)([a-zA-Z0-9_-]{11})/.test(videoUrl);
-    if (!isValidYouTubeUrl) {
+    if (!isValidUrl) {
       setError("Por favor, ingresa una URL válida de YouTube.");
       setIsLoading(false);
       return;
@@ -63,18 +74,19 @@ function Contenido() {
           placeholder="Por favor inserte una URL de video de YouTube"
           className="p-4 w-96 placeholder-gray-500 focus:outline-none focus:border-orange-500"
           value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
+          onChange={handleUrlChange}
         />
         <button
           className="bg-orange-300 hover:bg-orange-500 hover:text-gray-50 py-2 px-4 inline-flex items-center"
           onClick={handleSearch}
-          disabled={isLoading}
+          disabled={isLoading || !isValidUrl}
         >
           {isLoading ? "Buscando..." : "Buscar"}
         </button>
       </div>
 
       {error && <p className="text-red-500 mt-4">{error}</p>}
+      {!isValidUrl && <p className="text-red-500 mt-4">URL no válida de YouTube.</p>}
     </div>
   );
 }

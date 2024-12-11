@@ -22,35 +22,39 @@ app.post("/download", async (req, res) => {
   }
 
   try {
+    // Crear el directorio de descargas si no existe
+    const downloadDir = path.join(__dirname, "downloads");
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir, { recursive: true });
+    }
+
     // Definir la ruta de salida y las opciones de yt-dlp
-    const outputPath = path.join(__dirname, "downloads", "%(title)s.%(ext)s");
+    const outputPath = path.join(downloadDir, "%(title)s.%(ext)s");
 
-    // Comando para ejecutar yt-dlp en el backend con las cookies y el User-Agent
-    const command = `yt-dlp --cookies "${cookies}" --output "${outputPath}" --user-agent "${userAgent}" "${url}"`;
+    // Comando para obtener el nombre del archivo descargado
+    const command = `yt-dlp --cookies "${cookies}" --output "${outputPath}" --user-agent "${userAgent}" --get-filename "${url}"`;
 
-    // Ejecutar el comando en un proceso hijo
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error al ejecutar yt-dlp: ${error.message}`);
         return res.status(500).json({ error: "Error al ejecutar yt-dlp" });
       }
       if (stderr) {
-        console.error(`Error en stderr: ${stderr}`);
+        console.error(`stderr: ${stderr}`);
         return res.status(500).json({ error: "Error en yt-dlp" });
       }
 
-      console.log(`stdout: ${stdout}`);
+      const filename = stdout.trim();
+      const downloadedFilePath = path.join(downloadDir, filename);
 
       // Verificar si el archivo descargado existe
-      const downloadedFilePath = path.join(__dirname, "downloads", `${stdout.trim()}.mp3`);
-
       if (fs.existsSync(downloadedFilePath)) {
         res.download(downloadedFilePath, (err) => {
           if (err) {
             console.error("Error al enviar archivo:", err);
             res.status(500).json({ error: "Error al enviar archivo" });
           } else {
-            // Borrar el archivo después de enviarlo
+            // Eliminar el archivo después de enviarlo
             fs.unlinkSync(downloadedFilePath);
           }
         });
