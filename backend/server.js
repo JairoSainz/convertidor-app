@@ -11,8 +11,8 @@ app.use(cors()); // Habilitar CORS
 app.use(express.json()); // Para procesar JSON
 
 // Obtener las cookies de la variable de entorno y el User-Agent
-const cookies = process.env.YOUTUBE_COOKIES;
-const userAgent = process.env.USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'; // Cambia esto si necesitas un User-Agent específico
+const cookies = process.env.YOUTUBE_COOKIES; // Las cookies exportadas desde tu navegador
+const userAgent = process.env.USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'; // User-Agent, si es necesario
 const visitorData = process.env.YT_VISITOR_DATA; // La variable de entorno para visitor_data
 
 app.post("/download", async (req, res) => {
