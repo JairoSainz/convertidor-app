@@ -11,9 +11,9 @@ function Contenido() {
     const url = e.target.value;
     setVideoUrl(url);
 
-    // Validar que la URL es de YouTube
+    // Validar que la URL es de YouTube con una expresión regular más robusta
     const isValidYouTubeUrl =
-      /^(https?:\/\/)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)\/(watch\?v=|v\/|e\/|watch\?v%3D|embed\/)([a-zA-Z0-9_-]{11})/.test(url);
+      /^(https?:\/\/)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)\/(watch\?v=|v\/|e\/|embed\/|playlist\?list=)([a-zA-Z0-9_-]{11})(\S*)$/i.test(url);
     setIsValidUrl(isValidYouTubeUrl);
   };
 
@@ -48,7 +48,7 @@ function Contenido() {
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = downloadUrl;
-        link.download = `${Date.now()}.mp3`; // Modifica dinámicamente el nombre si es necesario
+        link.download = `${Date.now()}.mp3`; // Puedes modificar el nombre del archivo si es necesario
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -81,7 +81,11 @@ function Contenido() {
           onClick={handleSearch}
           disabled={isLoading || !isValidUrl}
         >
-          {isLoading ? "Buscando..." : "Buscar"}
+          {isLoading ? (
+            <span className="animate-spin">🔄</span>
+          ) : (
+            "Buscar"
+          )}
         </button>
       </div>
 

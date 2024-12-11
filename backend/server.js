@@ -29,11 +29,11 @@ app.post("/download", async (req, res) => {
       fs.mkdirSync(downloadDir, { recursive: true });
     }
 
-    // Definir la ruta de salida y las opciones de yt-dlp
+    // Definir la ruta de salida para el archivo descargado
     const outputPath = path.join(downloadDir, "%(title)s.%(ext)s");
 
-    // Comando para obtener el nombre del archivo descargado con extractor-args y visitor_data
-    const command = `yt-dlp --extractor-args "youtube:visitor_data=${visitorData}" --cookies "${cookies}" --output "${outputPath}" --user-agent "${userAgent}" --get-filename "${url}"`;
+    // Comando para descargar el video
+    const command = `yt-dlp --extractor-args "youtube:visitor_data=${visitorData}" --cookies "${cookies}" --output "${outputPath}" --user-agent "${userAgent}" "${url}"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
@@ -44,10 +44,11 @@ app.post("/download", async (req, res) => {
         console.error(`stderr: ${stderr}`);
         return res.status(500).json({ error: `stderr: ${stderr}` });
       }
-    
+
+      // Aquí usamos el nombre del archivo descargado
       const filename = stdout.trim();
       const downloadedFilePath = path.join(downloadDir, filename);
-    
+
       // Verificar si el archivo descargado existe
       if (fs.existsSync(downloadedFilePath)) {
         res.download(downloadedFilePath, (err) => {
@@ -63,7 +64,7 @@ app.post("/download", async (req, res) => {
         res.status(404).json({ error: "Archivo no encontrado" });
       }
     });
-    
+
   } catch (error) {
     console.error("Error de servidor:", error);
     res.status(500).json({ error: "Error al procesar la solicitud" });
